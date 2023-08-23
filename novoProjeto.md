@@ -137,4 +137,3 @@ export const kenx = setupKnex()
 
 agora dentro do setupKnex nos vamos colocar alguns argumentos.
 
-
