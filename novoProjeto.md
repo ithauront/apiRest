@@ -105,5 +105,36 @@ o lint vai ser algo que vai verificar todos os erros de todos os arquivos e dar 
 nesse script vai ter eslint a pasta onde estão os codigos por exemplo src --ext para sinalizar a estensão e as extençoes dos arquivos.ts.js etc e um --fix para ele corrigir tudo que for possivel de corrigir.
 
 
+# sqlite
+nos vamos usar o banco de dados sqlite primeiro porque ele usa o sql relacional. 
+banco relacional é muito perforlatico e usa 99% das fucnionalidades de outros bancos e é mais simples.
+alem disso não precisamos instalar nada na maquina porque os dados são salvos la mesmo.
+é muito facil tambem de migrar para outro banco n futuro.
+    * conexão com o banco
+    cada tecnologia tem formas diferentes de se conectar com o banco de dados.
+    as mais comuns são
+    1 drivers nativos - ferramentas bibliotecas de baixo nivel que permite que a gente se comunique com o banco de maneira pouco abstrata. por exemplo o mysql2
+    a gente tem que escrever a query de forma bem crua exatamente epecificando cada coisa 
+
+    2 query builders - formas de evitar ter que aprender muito sql e focar na linguagel que estamos trabalhando. no caso do node o mais famoso é o knex.js
+    ele vai construir querys para nos. facilita a escrita dos comandos sql com codigo js. em outras palavras usa mais ou menos uma sintaxe de js para os comandos sql
+    
+    3 orn - é um nivel de abstração mais alto. praticamente não nos procuramos com o sql. a sintaxe vem da linguagem
+
+
+    nos vamos usar o knex
+
+# configurando o knex
+temos o comando para instalar o knex npm i knex --save
+porem não vamos instalar so o knex mas tambem o driver do banco de dados ja junto. ou seja colocamos o npm install knex sqlite3
+uma vez que isso esteja instalado vamos criar dentro da pasta src um arquivo chamado database.ts
+esse qrauivo vai fazer uma conexção com o banco de dados. então nele vamos importar do knex uma funcção chamada kenx, porem vamos renomear ela como setupKnex para não dar o mesmo nome no nosso uso dela vai ficar assim
+import { knex as setupKnex } from 'knex'
+
+agora podemos fazer uma const chamada knex e igualar ela a essa fjunção e exportar ela
+fica assim
+export const kenx = setupKnex()
+
+agora dentro do setupKnex nos vamos colocar alguns argumentos.
 
 
