@@ -137,3 +137,189 @@ export const kenx = setupKnex()
 
 agora dentro do setupKnex nos vamos colocar alguns argumentos.
 
+import { knex as setupKnex } from 'knex'
+
+export const config = {
+  client: 'sqlite',
+  connection: {
+    filename: './temp/app.db',
+  },
+  useNullAsDefault: true,
+}
+
+export const knex = setupKnex(config)
+
+acho que perdi parte de minhas anotação mas fazrmos um arquivo knexfile.
+nos tambem  com esse qrquivo a gente roda o script lembrando que tem que estar no node versão 18 rodamos o script do kenx colocando como arquivo binario do kenx no executavel.
+assim podemos rodar ele com o tsx.
+
+o kenx vai criar um banco de dados com a data precisa como nome.
+para podermos migrar para outras plataformas de banco de dados mais tarde é bom lembrar que temos que manter a sintaxe do banco de dados padrão.
+dentro desse arquivo de migration que a gentefez vão ter dois metodos o up e down o up é o que ela vai favai fazer.
+e o down é que se caso tenha dado errado o down vai fazer o contrario do que o up fez para poder voltar no tempo. se o up criou uma tabela, o down vai apagar ela. e assim por diante.
+
+vamos escrever agora as funções para isso
+o arquivo orginal criado automaticamente pelo kenx é assim:
+import { Knex } from 'knex'
+
+export async function up(knex: Knex): Promise<void> {}
+
+export async function down(knex: Knex): Promise<void> {}
+
+
+nos vamos pegar o up e dar um await usar o kenx que é o parametro que a função recebe. dar um .schema. ( e aqui abre uma serie de metodos para fazermos criações.)
+vamos usar o createTable vamos passar um nome para essa tabela. e o segundo parametro vai ser uma função. essa função vai receber um parametro chamado table
+e dentro dela vamos dar um table. e aqui temos acesso a todos os tipos de possibilidades. vamos usar a primeira coluna como sendo a primaryKey. vai ser um id. podemos fazer ele como um increments() e assim iria de 1 2 3 etc. mas a maioria das aplicações não recomenda que usemos chaves primaria por inteiro. eles preferem que a gente use um valor mais aleatorio e dificil de ser descobrto. vamos usar então o uuid que é um gerador randomico. universal unique id
+dentro del passamos o nome do campo da tabela. id e para simboliza que é primaria vamos dar um .primary()
+fica assim
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.createTable('transactions', (table) => {
+    table.uuid('id').primary()
+  })
+}
+
+agora passamos para nosso proximo campo na tabela.
+table.text('title').notNullable() vai ser um campo de texto o nome dele vai ser titulo e ele não pode ficar vazio (not nullabler.)
+por enquanto vamos deixar so esses dois campos e a funcção fica assim antes de passarmos para a down
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.createTable('transactions', (table) => {
+    table.uuid('id').primary()
+    table.text('title').notNullable()
+  })
+}
+
+agora a down onde vamos desfazer a criação da tabela
+damos um drop table e passamos o nome da tabela.
+a pagina toda fica assim
+import { Knex } from 'knex'
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.createTable('transactions', (table) => {
+    table.uuid('id').primary()
+    table.text('title').notNullable()
+  })
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.dropTable('transactions')
+}
+
+apos salvar vamos executar essa criação da tabela com um npm run knex -- migrate:latest
+e ele vai automaticamente ler todas as migrations e executar. 
+e com isso criar a tabela transactions para a gente verificar isso a gente pode usar a rota hello onde a gente estava listando nossas tabelas.
+ao dar o get ele vai trazer a nossa tabelam trasnactions mas tambem outras tabelas que ele fez de forma totalmente automatizada poqruq o sqlite 
+é isso que ele devolve:
+[
+	{
+		"type": "table",
+		"name": "knex_migrations",
+		"tbl_name": "knex_migrations",
+		"rootpage": 2,
+		"sql": "CREATE TABLE `knex_migrations` (`id` integer not null primary key autoincrement, `name` varchar(255), `batch` integer, `migration_time` datetime)"
+	},
+	{
+		"type": "table",
+		"name": "sqlite_sequence",
+		"tbl_name": "sqlite_sequence",
+		"rootpage": 3,
+		"sql": "CREATE TABLE sqlite_sequence(name,seq)"
+	},
+	{
+		"type": "table",
+		"name": "knex_migrations_lock",
+		"tbl_name": "knex_migrations_lock",
+		"rootpage": 4,
+		"sql": "CREATE TABLE `knex_migrations_lock` (`index` integer not null primary key autoincrement, `is_locked` integer)"
+	},
+	{
+		"type": "table",
+		"name": "transactions",
+		"tbl_name": "transactions",
+		"rootpage": 5,
+		"sql": "CREATE TABLE `transactions` (`id` char(36), `title` text not null, primary key (`id`))"
+	},
+	{
+		"type": "index",
+		"name": "sqlite_autoindex_transactions_1",
+		"tbl_name": "transactions",
+		"rootpage": 6,
+		"sql": null
+	}
+]
+o sqlite sequence é uma tabela criada pelo sqllite para lidar com colunas deincrement. ele tambem cria a knex migration para listar as tabelas criaas e a knex migration lock. essas duas tabelas são responsaveis por anotar no banco de dados quais migrations ja foram executadas.
+a partir do momento que uma migration foi enviada para a produção ou para o nosso time ela nunca mais pode ser editada.
+se voce criou uma migration e errou algo vc vai ter que fazer outra para modificar.
+porque a partir do momento que outra pessoa executou a migration se vc editar ela nunca vai receber essa edição porque no banco de dados dessa pessoa ja esta anotado como migration executada.se voce ainda não enviou essa migration pra a produção ou para o seu time ainda da para editar. para fazer isso temos que
+# editar migration
+para o server
+e dar um npm run kenx -- migration:rollback
+
+ai ela desfaz a migration e com essa migration desfeita a gente pode alterar o que quiser.
+nosvamos la adicionar um novo campo.
+campo tipo decimal nome dele vai ser amount e ele vai ter 10, 2 ou seja o dez é o tamanho do numero que queremos armazenar e o 2 é o numero de casas deciamais.
+e tambem não vai ser nulo. fica assim:
+  table.decimal('amount', 10, 2).notNullable()
+  vamos tambem fazer um timestamp com o nome de created_at que é um campo que geralmente colocamos em todas as tabelas para anotar a data que o registro foi criado. para fazer isso a depender das tabelas usamos sintaxe diferente, now ou curenttimestamp etc. mas nosso knex é para poder usar ele em qualquer banco de dados enão temos que fazer algo que todos peguem;
+  então dentro do nosso defaultTo() vamos passar knex.fn.now que é algo que o nex tem para fazer a data. fica assim
+    table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable()
+
+    a pagina fica assim:
+    import { Knex } from 'knex'
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.createTable('transactions', (table) => {
+    table.uuid('id').primary()
+    table.text('title').notNullable()
+    table.decimal('amount', 10, 2).notNullable()
+    table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable()
+  })
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.dropTable('transactions')
+}
+
+salvamos isso. e rodamos de novo a migration latest
+com isso a tabela ja esta fucnionando e nos podemos trabalhar com ela.
+
+mas tambem podemos adicionar migrations so para alterar um campo.
+no caso de uma tabela ja ter sido enviada;
+a gente pode fazer algo como npm run knex -- migrate:make add-session-id-to-transactions
+
+com isso a gente vai criar uma migration não mais de criar uma tabela ma sim de adicionar uma sessão a uma tabela transactions.
+ele vai criar um novo arquivo com o mesmo formato para a gente fazer o up e o down e ai no up vamos fazer await knex schema e passar um alter table e nele passamos o nome da tabela que queremos alterar e recebemos essa tabela como um parametro na segunta função
+agora podemos por exemplo adicionar um novo campo usando
+table.tipo do campo nesse caso uuid. passamos o nome session id e podemos falar onde queremos que ese campo seja posicionado. vamos colocar o after(id) para falar que queremos ele logo apos o id (mas nem todos os bancos de dados suportam isso)
+vamos tambem botar um .index() para ele criar automaicamente um index
+o index é uma forma de falar para o banco de dados que vamos fazer muitas buscas dentro em transaçoes especificas de um idsession ou seja vai ser muito usad no where assim ele faz um cache para isso e faz as buscas serem mais rapidas.
+ficou assim:
+import { Knex } from 'knex'
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.alterTable('transactions', (table) => {
+    table.uuid('session_id').after('id').index()
+  })
+}
+
+export async function down(knex: Knex): Promise<void> {}
+
+
+agora vamos fazer o down
+vamos desfazer isso
+table.dropcolumn
+tudo fica assim:
+import { Knex } from 'knex'
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.alterTable('transactions', (table) => {
+    table.uuid('session_id').after('id').index()
+  })
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.alterTable('transactions', (table) => {
+    table.dropColumn('session_id')
+  })
+}
+
+
