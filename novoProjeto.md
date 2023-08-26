@@ -375,4 +375,77 @@ app.get('/hello', async () => {
   return transactions
 })
 
+# variaveis de ambiente
+variaveis de ambiente são informações que podem variar a cada ambiente que a nossa aplicação esta executando
+ambiente são os momentos de nossa aplicação como de desenvolvimento; de produção, de teste, staging(preview da produção)
+existem configura_ções que vao ser diferentes para cada um desses ambientes o banco de dados é um deles. a gente usa um banco de dados enquanto estamos em desenvolvimento porem na produção vamos usar outro.
+por isso precisamos das variaveis de ambiente
+a gente cria um arquivo .env que vai armazenar as nossas variaveis de ambiente esse arquivo fica na raiz do progeto
+para trabalhar com esse arquivo no vs code precisamos instalar a extenção chamada dotEnv
+dentro do arquivo.env todas as configurações vao ser chave e valor.
+o valor a gente pode colocar entre aspas ou não mas é indicado colocar entre aspas duplas. ai por exemplo vamos dizer que o databe url vai ser o endereço dele por exemplo fica assim:
+DATABASE_URL="./db/app.db"
+
+agora para ler esse arquivo .env dentro do node precisamos instalar uma extenão chamada dotenv
+npm i dotenv
+agora la no nosso arquivo databes.ts nos vamos importar no topo de tudo dotenv/config
+para informação a pagina de database.ts fica assim:
+import 'dotenv/config'
+import { knex as setupKnex, Knex } from 'knex'
+
+export const config: Knex.Config = {
+  client: 'sqlite',
+  connection: {
+    filename: './temp/app.db',
+  },
+  useNullAsDefault: true,
+  migrations: {
+    extension: 'ts',
+    directory: './db/migrations',
+  },
+}
+
+export const knex = setupKnex(config)
+
+
+deve ter algo na aula que eu perdi porque a minha estava um pouco diferente.
+
+esse dotenv/config que a gente importou vai ler o database e vai export todos os valores que temos no nosso .env dentro de uma variavel glgal chamada process.env essa process.env vai trazer varias variaveis automaticas e tambem a nossa database_URL que a gente programou no .env.
+com isso no lugar de filename que a gente passa o endereco que colocamos para a nosso app.db nos podemos colocar process.env.DATABASE_URL e ele vai ler ovalor que nos passamos la. é uma forma de modular o codigo.
+export const config: Knex.Config = {
+  client: 'sqlite',
+  connection: {
+    filename: process.env.DATABASE_URL,
+  },
+
+  porem temos um pequeno erro porque o typescript percebe que o database_url pode estar preenchido ou vazio la no .env e o typescript reclama dessa possibilidade dele estar vazio. no futuro vamos resolver isso de uma forma melhor mas por enquanto vamos abrir uma condicional antes do export para faar que se nos nõa tivermos informado o process.nv.database_urlnos vamos disparar um erro e ai nenhum codigo que esta abaixo vai executar
+  a pagina fica assim por enquanto:
+  import 'dotenv/config'
+import { knex as setupKnex, Knex } from 'knex'
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE URL NOT FOUND')
+}
+
+export const config: Knex.Config = {
+  client: 'sqlite',
+  connection: {
+    filename: process.env.DATABASE_URL,
+  },
+  useNullAsDefault: true,
+  migrations: {
+    extension: 'ts',
+    directory: './db/migrations',
+  },
+}
+
+export const knex = setupKnex(config)
+
+as variaveis de ambiente nos colocamos geralmente dados sensiveis, chaves de api que vamos integrar com serviços terceiros e etc. então o .env vai estar no gitignore.
+e como esse arquivo não vai entrer no controle de versão ou seja no github um outro desenvolvedor que for pegar seu codigo não vai saber o que informar nas variaveis. então a gente vai criar um arquivo chamado .env.example na raiz do projeto. e dentro desse arquivo colocamos quais são as variaveis que temos mas não colocamos os valores para elas. principalmente de conteudos sensiveis. poderia ficar assim:
+DATABASE_URL="./db/app.db"
+
+API_KEY=
+por exempl o url da database não é algo realmente sensivel então podemos até deixar. porem a chave de api a gente não coloca nada depois do igual. porque seria algo sensivel.
+e o example pode subir no git sem problema.
 
