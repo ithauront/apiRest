@@ -322,4 +322,57 @@ export async function down(knex: Knex): Promise<void> {
   })
 }
 
+# inserrir transaçoes nas rotas
+vamos la no server. na rota get que tem o hello e vamos começar a fazer a logica para inserir as rotas
+vamos retirar o que tem na rota e fazer uma const transaction e vai ser igual await knex na tabela transaction e vamos usar o metodo insert para inserir uma nova transação.
+e ai temos que abrir um objeto com os tipos de campo que vamos ter na tabela. o id que vai ser um uuid que ja colocamos la na nossa tabela. ai a gente importa o modo crypto do node e usa o metodo random crypto.ramdomuuid()
+vamos mandar o titulo 
+o amount
+não vamos colocar um session id porque ele não é obrigatorio nao tem o notnullable.
+e no fim a gente retorna a transaction
+
+  fica assm:
+  app.get('/hello', async () => {
+  const transaction = await knex('transactions').insert({
+    id: crypto.randomUUID(),
+    title: 'Transação de teste',
+    amount: 1000,
+  })
+  return transaction
+  
+})
+ * estou achando estranho a rota ser com get. talvez ele ainda mude isso.
+ se a gente rodar a rota hello assim ele vai nos dar um retorno 1
+ porque o knex por padrão não traz retorno muitos especificos.
+ para dar os elementos especificos a gente pode botar no fim da função insert um .returnin(*) o asterisco significa que vai retornar tudo que esta ali
+ ficaria assim insert().returning(*)
+
+alem da insercão nos podemos fazer uma busca com o knex('transactions).select(*) que era o codigo que tinhamos antes.
+eu fiz duas rotas uma de post e uma de get para ficar mais claro porque na aula ele esta apagano e fazendo outra. todas na de get
+ficou assim:
+app.get('/hello', async () => {
+  const transactions = await knex('transactions').select('*')
+  return transactions
+})
+
+app.post('/hello', async () => {
+  const transaction = await knex('transactions').insert({
+    id: crypto.randomUUID(),
+    title: 'Transação de teste',
+    amount: 1000,
+  })
+  return transaction
+})
+
+
+voltando na rota de get. nos podemos tambem fazer querys
+se apos o knex('transactions) a gente colocar um .where o where da varias opções  mas a gente vai abrir um ('amount', 1000) ou sejapegamos a tabela transactions e onde o amount seja 1000 vamos selecionar tudo.
+fica assim
+app.get('/hello', async () => {
+  const transactions = await knex('transactions')
+  .where('amount', 1000)
+  .select('*')
+  return transactions
+})
+
 
