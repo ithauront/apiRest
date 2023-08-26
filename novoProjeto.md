@@ -449,3 +449,75 @@ API_KEY=
 por exempl o url da database não é algo realmente sensivel então podemos até deixar. porem a chave de api a gente não coloca nada depois do igual. porque seria algo sensivel.
 e o example pode subir no git sem problema.
 
+# eliminar esses if para tratar as env
+podemos usar uma biblioteca expecifica para validação de dados, que vai validar se esse dado é um numero, string etc. a gente precisa validar alem da presença dos dados temos que validar tambem se ela foi passada da forma correta.
+vamos criar uma pasta env dentro da pasta src e vamos criar um arquivo index.ts
+vamos tambem instalar a biblioteca zod para a validação de dados
+npm i zod
+nos vamos tirar a importação da dot env config do database e passar ela para o env/index.ts
+agora essa importação vai ler o nosso arquivo de variaveis e vai passar todas elas para o process.env então podemos acessar ela usando o process.env.DATABASE_url
+vamos imortar de dentro do zod o z que serve para a gente criar um schema ou seja um formato de daos que vamos receber das nossas variaveis ambientes e nos vamos fazer de uma vez para todos as nossas variaves de ambiente não vai ser uma por vez.
+então vamos definir que o nosso process.env é um objeto usando o z.object
+por enauqnto fica assim
+const envSchema = z.object({
+  e qaui dentro vamos passar qausi variaveis vamos ter dentro de nossa aplicação
+
+})
+
+vamos colocar   database_URL  e ela vai ser uma string então vamos colocar : z.string() se ela podesse ser nula tambem a gente colocaria um .nullable depois do string() 
+e ai dentro desse objeto nos vamos passando uma por uma cada tipo de variavbeis ambientes que a gente colocar no nosso app como por enquanto so temos essa fica so ela.
+apos isso  colocamos apos fechar esse objet uma nova cons
+const env = envSchela.parse(process.env) 
+ou seja a const env vai pegar esse objeto e vai aplicar a nosso process.env
+caso alguma informação de erro esse metodo de parce vai dar um throw new Error automaticamente e pararia a aplicação. se tudo der certo o restante do codigo vai funcinar automaticamente enão se a gente escreve env. ele ja acha o databaseurl la dentro então podemos usar com o codigo sabendo que é uma string.
+so para encher um pouco vamos colocar tambem a variavel port dizendo que precisa ser um numero e se não tiver definida o valor default dela vai ser 3333
+apos isso vamos exportar a nossa const env para usar ela em outros lugares. a pagina fica assim:
+import 'dotenv/config'
+import { z } from 'zod'
+
+const envSchema = z.object({
+  DATABASE_URL: z.string(),
+  PORT: z.number().default(3333),
+})
+
+export const env = envSchema.parse(process.env)
+
+e agora sempre que a gente precisar usar uma variavel ambiente ao inves de acessar por process. env a gente acessa diretamente do env que vai ser importado desse arquivo index. assim podemos nos livrar do if que fizemos no database o arquivo database fica assim:
+import { knex as setupKnex, Knex } from 'knex'
+import { env } from './env'
+
+export const config: Knex.Config = {
+  client: 'sqlite',
+  connection: {
+    filename: env.DATABASE_URL,
+  },
+  useNullAsDefault: true,
+  migrations: {
+    extension: 'ts',
+    directory: './db/migrations',
+  },
+}
+
+export const knex = setupKnex(config)
+ podemos no server tambem ao invez de usar a port 3333 definida a gente simplismente importar do env a port.
+ outra variavel ambiente muito comum é a que especifica justamente em qual ambiente estamos a chamada node_env ele geralmente é implicito pelas ferramentes que estamos usando na aplicação mas vamos declarar ele tambem a variavel node env vai ser geralmente development test ou production então vamos usar para ela a caracteristica z.enum() enum significa que ela vai ser uma entre algumas opções no caso essas tres. colocamos isso dentro de um array e para o default o z ja sugere uma dessas tres vamos colocar production ou seja se a gente não especificar vai ser essa. e vamos la no nosso .env e vamos informar como developmen,t. e vamos passar logo isso tambem para nosso example.
+ entéao se a gente executar a aplicação sem uma variavel obrigatoria vai dar erro. porem o erro não explica bem o que aconteceu. para o erro ficar mais claro a gente vai  no index e mudar o tipo de parse para o safeParse que é igual o parse mas não dispara o erro caso de um problema. então ao oinvez de dar o export direto nos vamos chamar essa variavel de _env como variavel provisoria
+ e vamos fazer se _env for igual a false que significa que ele falhou porque algo não foi passado a gente vai dar nosso proprio erro com o que acontece e dar um env.error.format para entender qual variavel esta com erro. e caso ele passe por esse erro a gente exporta o env como sendo o data do _env a pagina fica assim
+ import 'dotenv/config'
+import { z } from 'zod'
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
+  DATABASE_URL: z.string(),
+  PORT: z.number().default(3333),
+})
+
+export const _env = envSchema.safeParse(process.env)
+
+if (_env.success === false) {
+  console.log('error: inalid enviroment variables:', _env.error.format())
+  throw new Error('invalid variables')
+}
+
+export const env = _env.data
+
