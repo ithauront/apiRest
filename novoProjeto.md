@@ -521,3 +521,110 @@ if (_env.success === false) {
 
 export const env = _env.data
 
+# planejamentos do banco de dados
+precisamos pensar nessas tres coisas antes de sair criando nossas rotas.
+ou seja quais são as funcionalidades da aplicação o que o usuario pode ou n ão pode fazer no app
+
+## requisitos funcionais
+
+[] o usuario pode criar uma nova transação
+[] o usuario deve poder obter um resumo de sua conta (rota que vai retornar o valor total)
+[] o usuario deve poder listar todas as transações queja ocorreram
+[] o usuario deve poder visualizar uma transação unica
+
+## regras de negocios (condicionais coisas que podem acontecer e o usuario vai validar)
+
+[] a transação pode ser debito ou credito ou seja dinheiro entrando ou saindo do valor total
+[]deve ser possivel identificarmos o usuario entre as requisições (ou seja se dois usuarios usarem a aplicação não vamos impactar as transaçoes um do outro)
+[]o usuario so pode vizualizar transaçoes que ele criou.
+
+
+## requisitos não funcionais (vamos adicionar depois )
+
+vamos colocar esse checklist como um readme na raiz do projeto e quando formos fazendo as funcionalidades vamos dando ok.
+
+
+# plugins do fastify
+uma das funcionalidades mais importantes do fastify é a de plugins
+que é a possibilidade de separar pedaços de nossa aplicaão em mais arquivos.
+por exemplo abrir uma pasta routes para colocar as rotas do transactions
+se nesse arquivo transactions dentro da pasta rotas a gente colar a nossa rota que fizemos fcaria assim:
+
+app.get('/hello', async () => {
+  const transactions = await knex('transactions')
+    .where('amount', 1000)
+    .select('*')
+  return transactions
+})
+app.post('/hello', async () => {
+  const transaction = await knex('transactions')
+    .insert({
+      id: crypto.randomUUID(),
+      title: 'Transação de teste',
+      amount: 1000,
+    })
+    .returning('*')
+  return transaction
+})
+
+
+porem isso daria errado porque o app não existe nesse contexto então essa rota não saberia o que fazer.
+a gente poderia exportar a variavel app do server mas não faz muito senido porque o app que vai importar as rotas, assim o app faria um vai e vem de exportar a app e trazer de volta as rotas.
+então vamos usar essa funcionalidade de dentro do fastify que é a plugin. como vamos usar
+na pagina de transactions vamos exportar uma funcção chamada transactionRoutes.
+que vai ser o nome do nosso plugin 
+e essa função vai receber como parametro o nosso app
+e ela vai ter dentro dela as rotas
+importamos o knex do nosso database
+agora dentro do osso server vamos retirar a nossas rotas que estavam la e vamos chamar o pluging
+fazemos isso ssim
+app.register(transactionsRoutes) ou seja passamos para o register o nome do nosso plugin
+todo plugin do fastify precisa obrigatoriamente ser uma função assincrona enão quando estivermos criando a função transactionRoutes temos que declarar como async
+o transaction fica assim:
+import { knex } from '../database'
+import crypto from 'node:crypto'
+
+export async function transactionsRoutes(app) {
+  app.get('/hello', async () => {
+    const transactions = await knex('transactions')
+      .where('amount', 1000)
+      .select('*')
+    return transactions
+  })
+  app.post('/hello', async () => {
+    const transaction = await knex('transactions')
+      .insert({
+        id: crypto.randomUUID(),
+        title: 'Transação de teste',
+        amount: 1000,
+      })
+      .returning('*')
+    return transaction
+  })
+}
+
+(ta dando um erro no app sobre implicito qualqeur tipo mas vemos isso depois)
+e o server fica assim:
+
+import fastify from 'fastify'
+
+import { env } from './env'
+import { transactionsRoutes } from './routes/transactions'
+
+const app = fastify()
+
+app.register(transactionsRoutes)
+app
+  .listen({
+    port: env.PORT,
+  })
+  .then(() => {
+    console.log('http server running!')
+  })
+(tambem tem um erro apontando na importação do transaction routes mas ele esta fucnionando normalmenta)
+  vamos dar o type colocamos : fastifyInstance
+  export async function transactionsRoutes(app: FastifyInstance) mandamos importar o instace automaticamente.
+  para resolver o poblema da importação no server é so salvar o transactions como .ts
+
+  podemos fazer diversos plugins e colocar eles el nossa aplicação. quantos quisermos porem é importante ter uma ordem neles. a rodem de leitura caso ul precise modificar algo do outro. mas em breve vamos aprender mais sobre isso.
+  
