@@ -725,4 +725,91 @@ export async function transactionsRoutes(app: FastifyInstance) {
   })
 }
 
+# tipagem tabela knex
+o knex não consegue identificar de maneira automatica quais campos e quais tabelas no nosso banco de dados
+ou seja se a gente for inserir algo na tabela ele não vai te sugerir o que exite na tabela para que a gente possa fazer de forma correta
+porem podemos dizer manualmente para o knex quais as tabelas e quais campos tem.
+vamos criar a pasta @types
+ela vai servir para a gente sobrescrever tipagens de outras bibliotecas.
+vamos criar um arquivo chamado knex (porem o nome tanto faz) mas a extenção é .d.ts
+o d vem de definição de tipos. é um arquivo sem javascript nele. somente codigos typescript ou seja somente o typescript entende ele.
+quando a gente for trabalhar um arquivo de types a primeira coisa a fazer nele é importar a biblioteca.
+então importamos o Knex from knex
+como nos não vamos usar a variavel Knex a gente passa um comentario para o eslint para ele ignorar a proxima linha e não ficar disparando esse erro fica assim:
+// eslint-disable-next-line
+import { Knex } from 'knex'
 
+nos não usamos o Knex porem essa declaração é uma forma de declarar que queremos usar os types que ja existem na bilbioteca knex
+agora nos vamos declarar coisas suplementares a isso.
+vamos declarar o modulo knex/types/table
+esse modulo é porque o knex tem o tables dentro dele como interface se a gente for procurar la dentro do knex indo a fundo. porem essa interface esta vazia.
+esse é um arquivo que ajuda a mapear as tables do banco de dados. e usando o modulo que a gente vai declarar nos podemos atualizar ele e deixar o knex mais esperto para nosso programa
+dentro da nossa declaração a gente vai exportar uma interface Tables {}
+e dentro dela vamos falar quais tabelas existem em nosso banco de dados
+ao declarar uma tabela. nas nossas rotas quando a gente escrever o knex() ele ja vai identificar a tabela.
+a pagina fica assim:
+// eslint-disable-next-line
+import { Knex } from 'knex'
+
+declare module 'knex/types/tables' {
+  export interface Tables {
+    transactions: {
+      id: string
+      title: string
+      amount: number
+      created_at: string
+      session_id?: string
+    }
+  }
+}
+
+e agora ao dar um insert ele tras pra a gente todos os campos, e se a gente tentar inserir um campo, que não existe ele da erro.
+fazendo essas coisas é bom para nosso codigo ficar mais simples e facil de receber manutenção
+
+# atualização na lsitagem
+vamos fazer a rota usando o get e a / e vamos tirar o where. vai ficar dessa forma:
+  app.get('/', async () => {
+    const transactions = await knex('transactions').select()
+    return transactions
+  })
+
+  retornando o transactios simples
+  porem se um dia a gente quiser fazer um retorno com ações extra como ter a contagem do total de transações. fica ruim de fazer. então a gente vai retornar um objeto e dentro dele a gente coloca a transactioons
+  assim:
+    app.get('/', async () => {
+    const transactions = await knex('transactions').select()
+    return {aqui podemos adicionar coisas e depois termos a transactions}
+  })
+
+vamos aproveitar e criar uma outra rota que busca detalhes de uma transação unica.
+vamos pegar o /:id para pegar um parametro da rota que vem com id
+depois disso vamos fazer a async
+e de dentro da request vamos acessar os params so que essesparams vao estar como desconhecidos então vamos fazer o mesmo esquemado zod
+vamos dar uma const de getTransactionSchema = z.objetc{
+  id: z.string().uuid()
+}
+o zod ja permite que nossa validação pegue que não apenas seja uma string como que seja um uuid
+depois a gente pega o id dela passando o nosso request.params pelos parse do schema.
+fica assim
+ app.get('/:id', async (request) => {
+    const getTransactionsParamsSchema = z.object({
+      id: z.string().uuid(),
+    })
+    const { id } = getTransactionsParamsSchema.parse(request.params)
+  })
+
+  agora vamos fazer a const transaction dentro dessa rota que vai ser um await knex('transactions).where('id', id).first()
+  temos que botar o first no final porque nos vamos ter uma unica transação com esse id. e se a gente não colocar o metodo first ele vai retornar isso como um array.
+  e nos queremos apenas a entrada, então o first vai gtrazer um resultado que vai ignorar a possibilidade de ter mais de um e por isso ele não vai fazer um array.
+  e depois disso damos um return {transaction}
+  fica assim:
+   app.get('/:id', async (request) => {
+    const getTransactionsParamsSchema = z.object({
+      id: z.string().uuid(),
+    })
+    const { id } = getTransactionsParamsSchema.parse(request.params)
+    const transaction = await knex('transactions').where('id', id).first()
+    return { transaction }
+  })
+
+e agora podemos pegar algo pelo id no insomnia.
