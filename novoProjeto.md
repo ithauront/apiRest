@@ -837,4 +837,64 @@ e agora vamos usar um metodo de agregação chamado sum() esse metodo vai somar 
 
     return { summary }
   })
-  
+
+  # transação especifica para os usuarios
+  para que quando varios usuarios usarem a aplicação nos queremos que cada usuario tenha aceso apenas a suas tabelas.
+  como fazer isso?
+  tudo inicia na criação da primeira transação. nos queremos ter alguma forma de anotar na maquina desse usuario um id e qual esse id o usuario vai utilizar em todas as açoes sequentes para identificar que esse usuario é o mesmo que criou a tabela em questão.
+  para isso vamos usar coockies
+  são formas de mantermos contexto entre requisições
+  eles vao salvar algumas coisas como um id dentro do seu navegador esse id é uma forma da aplicação validar que a mesma pessoa fez tais processos dentro da aplicação
+   e uma vez logado na aplicação todo esse historico de coisas que voce fez antes de logar são salvos na sua conta
+   nos vamos utilizar a estrategia de coockes para a gente saber que o mesmo usuario que esta utilizando a aplicação é o que criou uma transaction.
+   por isso criamos a session id
+   obviamente a gente so faz isso por que não temos sistema de autenticação.
+   com esse session id o fluxo que queremos na aplicação é apartir do momento que o usuario criar a primeira transação nos vamos anotar para ele um session id nos cockies deles. quando ele for listar uma transição nos vamos validar apenas transações desse mesmo session id
+   para trabalhar com cokkies no fastify vamos ter que instalar o pacote de cookies dele assim:
+    npm i @fastify/cookie
+
+    agora vamos no server e antes das rotas porque o cadastro dos cookies precisa acontecer antes de nossas rotas acontecerem. vamos dar um app.register
+    e vamos passar para o register o cookie que nos vamos importar do fastify/cookie
+    fica assim:
+    import fastify from 'fastify'
+import cookie from '@fastify/cookie'
+import { env } from './env'
+import { transactionsRoutes } from './routes/transactions'
+
+const app = fastify()
+
+app.register(cookie)
+
+app.register(transactionsRoutes, {
+  prefix: 'transactions',
+})
+app
+  .listen({
+    port: env.PORT,
+  })
+  .then(() => {
+    console.log('http server running!')
+  })
+
+
+salvamos isso e agora dentro das transactions no app.post antes de inserir o dado no banco
+vamos dar um let sessionId = request.cookies.sessionId
+o que isso esta fazendo esta procurando dentro dos cookies da requisição se ja existe uma sessionId se ela ja existir nos vamos passar ela quando a gente criara transação.
+se não vamos fazer a condicional de if !sessionId ou seja o usuario não tenha uma nos coockies dele a gente vai criar um novo para ele usando o ramb=dom uuid e vamos salvar nos cookies utiizando o reply.cookie uma informação chamada sessionid com o valor que acabamos de criar e vamos passar algumas configurações para esses cookies abrindo um objeto. dessas as mais importantes são quais rotas do backend vai poder acessar. se usar / todas vao poder acessar vamos dar isso de path.
+temos tamvbem as informações sobre a exiração. todo cookie em algum momento vai expirar então temos duas formas de passar isso se a gente passar o expires a gente precisa passar um date com a data correta que o cookie vai expirar usando o new Date( passar a data ate o segundo)
+o que a gente faz é o maxAge one passamos em milisegundos o quanto de tempo o cookies deve passar no navegador do usuario. então vamos passar 1000 (um segundo) * 60 (um minuto) * 60 (uma hora) * 24 (1 dia) * 7 umasemana. para ser cleancode a gente coloca logo depois um comentario dizendo o que esse numero significa. fica assim o total:
+    let sessionId = request.cookies.sessionId
+
+    if (!sessionId) {
+      sessionId = crypto.randomUUID()
+
+      reply.cookie('sessionId', sessionId, {
+        path: '/',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      })
+    }
+
+
+agora pode salvar e ir criar um post na aba cookies ele vai retornar o valor da session id
+
+
