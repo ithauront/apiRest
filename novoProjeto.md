@@ -813,3 +813,28 @@ fica assim
   })
 
 e agora podemos pegar algo pelo id no insomnia.
+
+# resumo
+o usuario deve poder ver o resumpo de sua conta.
+vamos criar uma rota chamada sumary com um app.get('/sumary, async
+)
+
+essa rota vai fazer uma query para o banco de dados.
+ou seja const transactions = await kenx('transactions)
+e agora vamos usar um metodo de agregação chamado sum() esse metodo vai somar tudo que tem dentro de uma coluna então passamos amount para ele fica assim
+  app.get('/summary', async () => {
+    const summary = await knex('transactions').sum('amount')
+  })
+
+  e ai como ele soma todos os valores o resultado vai ser um resultado so então se a gente retorna return {summary} ele vai retornar como array então vamos colocar um first no final para ele entender que o retorno é um so
+  tambem o nome que vai aparecer la vai ser sum amount: o valor da soma
+  para mudar isso a gente pode no segundo parametro da sum() passar algumas configurações em um objeto. uma dessas configurações é o as : '' e ai podemos colocar o nome que a gente quer que apareça vamos colocar o nome da coluna que vai ser amount
+  fica assim: 
+   app.get('/summary', async () => {
+    const summary = await knex('transactions')
+      .sum('amount', { as: 'amount' })
+      .first()
+
+    return { summary }
+  })
+  
