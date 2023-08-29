@@ -628,3 +628,101 @@ app
 
   podemos fazer diversos plugins e colocar eles el nossa aplicação. quantos quisermos porem é importante ter uma ordem neles. a rodem de leitura caso ul precise modificar algo do outro. mas em breve vamos aprender mais sobre isso.
   
+  # rotas
+  como nossas rotas todas vão ter o endereço /transactions nos podemos tirar esse endereço usando a importação do plugin no register passando um segundo parametro com informações u seja la no server na register a gente passa o prefix como uma informação no objeto do segundo arguemento da função. fica assim:
+  app.register(transactionsRoutes, {
+  prefix: 'transactions',
+})
+
+agora todas nossas rotas podem estar com somente / e ele vai interpretar como /transactions.
+
+vamos agora atualizar a rota post usando o body da transação ao invez de fazer aquele post estatico como estava.
+estava assim:
+ app.post('/', async () => {
+    const transaction = await knex('transactions')
+      .insert({
+        id: crypto.randomUUID(),
+        title: 'Transação de teste',
+        amount: 1000,
+      })
+      .returning('*')
+    return transaction
+  })
+
+  vamos retirar a const transaction e colocar uma desestruturação para pegar da requisião as informações que vao vir de la.
+  nos podemos receber dentro dessa async a nossa request
+   e agora dando request. nos temos varias possibilidades nos vamos pegar o body. de onde vem as informações enviadas pelo usuario.
+   porem esse request.body tem o tipo como desconhecido. e queremos evitar isso.
+   dentro do request body nos queremos receber tres coisas o tittle o amount e o type (credito ou debito) 
+   então nos vamos usar novamente o zod para validar essas coisas
+   dentro da rota de app post nos vamos fazer uma const para validar esse schema usando o Z.object fica assim:
+    const createTransactionBodySchema = z.object({
+      title: z.string(),
+      amount: z.number(),
+      type: z.enum(['credit', 'debit']),
+    })
+    e agora vamos criar uma const body para dar um parce no nosso request body por esse schema. vai ficar assim.
+      const body = createTransactionBodySchema.parse(request.body)
+
+      ou seja nos validamos se o que vem do nosso request body bate com o esquema de validação que criamos. caso de erro o parseda um throw e ai não le o resto do codigo.
+      agora dentro do body nos ja temos o tipo dessa validaçéao. nos podemos entãosubstituir o body por uma desestruturação. a gente coloca um objeto do lado esquerdo para pegar o title o amount e o tyope. fica assim:
+      const { title, amount, type } = createTransactionBodySchema.parse(
+      request.body,
+    )
+
+    agora vamos criar a nova transação
+    poderia ser assim:
+    const transaction = await knex('transactions')
+      .insert({
+        id: crypto.randomUUID(),
+        title,
+        amount,
+        type,
+      })
+
+      porem no nosso banco de dados nos não criamos a coluna para o typo. então o que vamos fazer com isso.
+      a gente vai retirar o type do insert e no amount nos vamos fazer uma condicional.
+      se for do tipo credito vamos usar o amount como ele esta. se for debito vamos usar ele como negativo assim:
+        amount: type === 'credit' ? amount : amount * -1,
+
+        nas api a gente geralmete não faz retorno enão vamos tirar essa parte do .returning(*)
+        nos vamos tambem tirar o const transaction = para não precisar retornar nada ou seja não precisar usar essa const. vai iniciar ja com o await
+        porem nos sabemos que precisamos retornar um http code
+        vamos entao passar para a funçao a response que o knex chama de reply
+        assim podemos retornar essa resposta e vamos usar ele assim
+        return reply.status(201).send()
+        o status vai ser o codigo que ele vai mandar e o send épara enviar. nesse caso esta vazio então ele envia essa resposta so com o codigo. mas no send a gente pode colocar algo dentro se quiser como um texto.
+        a pagina fica assim com o post alterado:
+        import { FastifyInstance } from 'fastify'
+import { z } from 'zod'
+import { knex } from '../database'
+import crypto from 'node:crypto'
+
+export async function transactionsRoutes(app: FastifyInstance) {
+  app.get('/', async () => {
+    const transactions = await knex('transactions')
+      .where('amount', 1000)
+      .select('*')
+    return transactions
+  })
+
+  app.post('/', async (request, reply) => {
+    const createTransactionBodySchema = z.object({
+      title: z.string(),
+      amount: z.number(),
+      type: z.enum(['credit', 'debit']),
+    })
+    const { title, amount, type } = createTransactionBodySchema.parse(
+      request.body,
+    )
+
+    await knex('transactions').insert({
+      id: crypto.randomUUID(),
+      title,
+      amount: type === 'credit' ? amount : amount * -1,
+    })
+    return reply.status(201).send()
+  })
+}
+
+
