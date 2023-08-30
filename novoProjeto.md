@@ -1317,6 +1317,12 @@ test('user create new function', async () => {
 
 agora os testes passam.
 
+## categorizando testes
+antes de fazer mais testes a gente pode categorizar eles
+ou seja todos os testes da rotas da transação a gente coloca no mesmo arquivo algo como transactions e a gente pode tambem colocar eles dentro de uma categoria usando o describe do vitest vamos importar o describe que serve para categorizar a gente chama describe e coloca um nome como 'transaction routes', no segundo argumento a gente coloca uma função arow e ai a gente coloca tudo dentro dessa funçÃO  inclusive o before all e agora o before all e o after all vao valer apenas para essa categoria. ou seja criamos um contexto.  e agora quando um teste falhar ele vai dizer qual o nome do teste falohou e de qual categoria ele estava.
+a gente pode fazer subcategorias usando o describe dentro do describe como por exemplo a gente tem varias rotas get a gente poderia fazer uma subcategoria para os testes da get nela.
+outra coisa é que geralmente existe duas funções iguais a test e a it,  nome é diferente mas elas fazem a mesma coisa. ai a gente coloca como a gente quer. o it é porque a semantica de como a gente escreveia it('should be able to create transaction')
+mas ai a gente pode deixar como teste tambem. da no mesmo. melhor deixar teste para mim.
 
 
 
