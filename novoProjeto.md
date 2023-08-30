@@ -1225,6 +1225,100 @@ AssertionError: expected 200 to deeply equal 201
        press h to show help, press q to quit
 Cancelling test run. Press CTRL+c again to exit forcefully.
 
+# testar a criação da trasação
+vamos criar um teste que vai criar uma transição e vai validar se ela foi realmente criada
+esse teste vai fazer uma chamada http
+no nosso server nos usamos o app.listen
+o que quer dizer que se no nosso teste nos importarmos o app que é a porta de entrada para fazer requisições. ao importar isso ele vai tentar subir um servidor na porta 3333 porem para o teste não é bom subir um servidor porque o pode dar conflito usar a mesma porta que o programa e tudo maais.
+a gente poderia usar outra porta, porem colocar o servidor no ar demora um pouco tando pra iniciar quanto para matar. então existe uma ferramente para o ambiente de node chamada supertest e vamos instalar ela
+npm supertest -D
+essa ferramente pode serir para fazer requisições para a aplicação sem colocar a aplicação no ar, sel usar o metodo listne. para fazer isso vamos separar nosso server em dois arquivos. o app.ts e o server que ja existe.
+no app nos vamos pegar todo o codigo que esta antes do app.listen e jogar ele la e exportar o app.
+no server nos vamos importr o app e importar as variaveis ambientes e fazer so o listen.
+o app.ts fica assim:
+import fastify from 'fastify'
+import cookie from '@fastify/cookie'
+import { transactionsRoutes } from './routes/transactions'
+
+export const app = fastify()
+
+app.register(cookie)
+
+app.addHook('preHandler', async (request, reply) => {
+  console.log(`voce usou o metodo [${request.method}] e a rota ${request.url}`)
+})
+app.register(transactionsRoutes, {
+  prefix: 'transactions',
+})
+
+e o server fica assim:
+import { app } from './app'
+import { env } from './env'
+
+app
+  .listen({
+    port: env.PORT,
+  })
+  .then(() => {
+    console.log('http server running!')
+  })
+
+ao dar o run dev não da erro porque ele ainda roda o server e no server tem o listen e a chamada pro app.
+e agora no test nos vamos usar so o app sem usar o listen.
+e vamos no teste tamvem importar o supertest (usando o nome request) no arquivo de teste porem da um erro na importação do supertest porque ela foi construida com javascript e ai o typescript reclama porque ele não acha os types la. a gente pode ver isso porque no npm site tem um dt que mostra que a parte do typescript foi criada pela comunidade e esta em outro lugar então temos que instalar esse pacote de para o typescript.
+npm install -D @types/supertest
+agora no nosso test nos vamos dar uma  const response que vai ser igal a await request(app.server) (por conta do await a nossa função tem que ser async ) vamos chamar o request e nele vamos passar o app.server  com essa função a gente cria um servidor node puro, sem framework. o supertest sempre precisa receber esse servidor do node. e agora a gente pode usar os metodo http .post(determinamos a rota).send(aqui vamos enviar os campos que temos que determinar no body do post)
+agora podemos dar um expect(response.statusCode).toEqual(201)
+porem o supertest nos da uma funcionalidade que a gente pode elimidar a const response, e ao invez de dar um expect(response) a gente so cola la na nossa função um .expect(201) fica assim
+import { expect, test } from 'vitest'
+import { app } from '../src/app'
+import request from 'supertest'
+
+test('user create new function', async () => {
+  await request(app.server)
+    .post('/transactions')
+    .send({
+      title: 'new transaction',
+      amount: 5000,
+      type: 'credit',
+    })
+    .expect(201)
+})
+
+esse .expect vai validar automaticamente se o retorno é 201.
+se a gente rodar o testes assim vai dar erro. por que ele vai retornar um 404 e não um 201. dizendo que a rota não existe
+dentro de cada plugin nos temos um await ou seja pode demorar para rodar ou seja a aplicação pode demorar para cadastrar todos os plugins e ai o teste roda sem estar todos os plugins cadastrados. nos precisamos assegurar que os plugins estão cadastrados antes de executar o teste para isso dentro dos testes nos vamos importar do vitest uma funçéao chamada beforeAll a gente coloca ela na raiz antes do nosso teste e dentro dela a gente pode colocar algo para executar antes de todos os testes se a gente quoisesse que fosse antes de cada teste a gente usaria o beforeEach depois de cada teste afterEach depois de tudo afterAll. mas aqui vamos usar o beforAll
+vamos chamar ele e dentro dele fazer uma função async e coloca um await app.ready
+isso significa que ele vai esperar o app estar pronto. a função do fastify ready ja resolve tudo
+
+vamos usar tambem o afterall e passar para ele uma função async e passar um await app.close() a appclose fecha a aplicação ou seja tira ele da memoria. a pagina ficouassim:
+import { afterAll, beforeAll, expect, test } from 'vitest'
+import { app } from '../src/app'
+import request from 'supertest'
+
+beforeAll(async () => {
+  await app.ready()
+})
+
+afterAll(async () => {
+  await app.close()
+})
+
+test('user create new function', async () => {
+  await request(app.server)
+    .post('/transactions')
+    .send({
+      title: 'new transaction',
+      amount: 5000,
+      type: 'credit',
+    })
+    .expect(201)
+})
+
+agora os testes passam.
+
+
+
 
 
 
