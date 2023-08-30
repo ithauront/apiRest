@@ -897,4 +897,181 @@ o que a gente faz é o maxAge one passamos em milisegundos o quanto de tempo o c
 
 agora pode salvar e ir criar um post na aba cookies ele vai retornar o valor da session id
 
+# validar os cookies
+o que precisamos fazer agora nas rotas tanto de listagem, post e etc é buscar as informaçoes daquele usuario para interagir apenas com as tabelas desse usuario.
+vamos começar pela que lista
+nos podemos por exemplo buscar o sessionId dentro de request.coockies.sessionId
+e dizerq que se a sessionId não existir dentro dos cooclies a gente pode dar um retorno de erro dando um reply.status(401).send('voce não esta autorizado a fazer essa requisição)
+o codigo de não autorizado é 401
+
+podemos pelo insomnia deletar o cookie.
+fica assim:
+ app.get('/', async (request, reply) => {
+    const sessionId = request.cookies.sessionId
+    if (!sessionId) {
+      return reply.status(401).send({
+        error: 'unauthorized',
+      })
+    }
+    const transactions = await knex('transactions').select()
+    return { transactions }
+  })
+  agora se a gente for no insomnia e limapr os coockies e tentar acessar a lista ele vai dar unauthorized se a gente criar algo novo ele vai criar o cookie para a gente e ai vamos poder ver.
+  porem nos queremos listar transaçoes apenas onde o sessionId seja igual ao que a pessoa esta logada então vamos na const transactions depois do select e colocar um where('sessionId', sessionId) ou seja as tabelas com o campo sessionId sejam iguais ao sessionId que é mostrado pelo request fica assim
+  const transactions = await knex('transactions')
+      .select()
+      .where('session_id', sessionId)
+    return { transactions }
+  })
+
+  assim funciona. porem esse codigo que valida que o coockie existe vai aparecer para todas as rotas então ao invez de ter o mesmo codigo repetitivo, a gente poderia talvez fazer algo para não ficar repetindo isso.
+  para isso no fastify o nome seria prehandler mas a gente vai chamar de middleware.
+  criamos uma pasta chamada middlewhere
+  o middleware vai ser um interpretados que vai ser executado antes de qualuqer rota.
+  e caso tenha um erro ele vai dar logo um erro se não ele vai deixar rolar 
+  vamos dar o nome para o arquivo checkSessionIdExists.ts
+  dentro dele nos vamos exportar uma async function que vai ser como a função que passamos de segundo parametro para a rota ela vai receber um request reply e vamos passar a logica de check que estava la na rota para o corpo dessa função. 
+  export async function checkSessionIdExists(request, reply) {
+  const sessionId = request.cookies.sessionId
+  if (!sessionId) {
+    return reply.status(401).send({
+      error: 'unauthorized',
+    })
+  }
+}
+veja que nos não passamos nada para o caso do if não pegar um erro, porque o padrão desses codigos é que se não cair nsse erro ele vai seguindo tranquilamente o resto da aplicação. ou seja se o middleware não interceptar ele vai continuar.
+o request e reply estão como any, podemos mudar isso. vamos tipar eles usando o fastify request e reply que vamos importar do fastyfy fica assim:
+export async function checkSessionIdExists(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+
+  agora voltamos para nossa rota.
+  para o session id parar de dar erro a gente pega ele de volta do cookies assim
+   const { sessionId } = request.cookies
+   mas nos queremos que a nossa verificação aconteça antes de rodar nosso codigo então na função logo apos a rota e antes da função em si nos vamos passar um objeto.
+   export async function transactionsRoutes(app: FastifyInstance) {
+  app.get('/',{nos colocamos o objeto bem aqui} ,async (request, reply) => {
+
+nisso a gente pode passar varias coisas e o que a gente vai passar agora é o prehandler. handler é a função que executa o codigo e prehandler vai ser algo que é executado antes
+nesse prehandler a gente vai passar o nosso lidkeware. como podemos passar varios a gente passa eles dentro de um array, mas em nosso caso o array so vai ter uma coisa dentro. fica assim:
+import { checkSessionIdExists } from '../middleware/checkSessionIdExist'
+
+export async function transactionsRoutes(app: FastifyInstance) {
+  app.get(
+    '/',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request, reply) => {
+      const { sessionId } = request.cookies
+      const transactions = await knex('transactions')
+        .select()
+        .where('session_id', sessionId)
+      return { transactions }
+    },
+  )
+  agora a gente copia essa parte de prehandler e cola em todas nossas rotas
+  menos na de post porque ela tem uma logica diferente que ja esta feita.
+  nos vamos agora adicionando a linha de pegar o sessionId dos cookies e  adicionar na transactrion um andWhere('session_id' sessionId) ou podemos no primeiro where simplismente passar um objeto e passar os id e o sessionId ficaria assim:
+  const transaction = await knex('transactions')
+        .where({ id, session_id: sessionId })
+        .first()
+      return { transaction }
+
+      na da summary como so tem o sessionId a gente deixa a semantica andiga dde 'session_id', sessionId
+
+      a pagina fica assim:
+      import { FastifyInstance } from 'fastify'
+import { z } from 'zod'
+import { knex } from '../database'
+import crypto from 'node:crypto'
+import { checkSessionIdExists } from '../middleware/checkSessionIdExist'
+
+export async function transactionsRoutes(app: FastifyInstance) {
+  app.get(
+    '/',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request, reply) => {
+      const { sessionId } = request.cookies
+      const transactions = await knex('transactions')
+        .select()
+        .where('session_id', sessionId)
+      return { transactions }
+    },
+  )
+
+  app.get(
+    '/:id',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const { sessionId } = request.cookies
+      const getTransactionsParamsSchema = z.object({
+        id: z.string().uuid(),
+      })
+      const { id } = getTransactionsParamsSchema.parse(request.params)
+      const transaction = await knex('transactions')
+        .where({ id, session_id: sessionId })
+        .first()
+      return { transaction }
+    },
+  )
+
+  app.get(
+    '/summary',
+    {
+      preHandler: [checkSessionIdExists],
+    },
+    async (request) => {
+      const { sessionId } = request.cookies
+      const summary = await knex('transactions')
+        .where('session_id', sessionId)
+        .sum('amount', { as: 'amount' })
+        .first()
+
+      return { summary }
+    },
+  )
+
+  app.post('/', async (request, reply) => {
+    const createTransactionBodySchema = z.object({
+      title: z.string(),
+      amount: z.number(),
+      type: z.enum(['credit', 'debit']),
+    })
+
+    const { title, amount, type } = createTransactionBodySchema.parse(
+      request.body,
+    )
+
+    let sessionId = request.cookies.sessionId
+
+    if (!sessionId) {
+      sessionId = crypto.randomUUID()
+
+      reply.cookie('sessionId', sessionId, {
+        path: '/',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      })
+    }
+
+    await knex('transactions').insert({
+      id: crypto.randomUUID(),
+      title,
+      amount: type === 'credit' ? amount : amount * -1,
+      session_id: sessionId,
+    })
+
+    return reply.status(201).send()
+  })
+}
+
+
+
+
+
 
