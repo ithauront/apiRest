@@ -12,8 +12,8 @@ ou seja quais são as funcionalidades da aplicação o que o usuario pode ou n �
 ## regras de negocios (condicionais coisas que podem acontecer e o usuario vai validar)
 
 [v] a transação pode ser debito ou credito ou seja dinheiro entrando ou saindo do valor total
-[]deve ser possivel identificarmos o usuario entre as requisições (ou seja se dois usuarios usarem a aplicação não vamos impactar as transaçoes um do outro)
-[]o usuario so pode vizualizar transaçoes que ele criou.
+[v]deve ser possivel identificarmos o usuario entre as requisições (ou seja se dois usuarios usarem a aplicação não vamos impactar as transaçoes um do outro)
+[v]o usuario so pode vizualizar transaçoes que ele criou.
 
 
 

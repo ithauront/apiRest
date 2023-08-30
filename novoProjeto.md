@@ -1118,7 +1118,112 @@ app
     console.log('http server running!')
   })
 
+# testes automatizados
+são formas de a gente manter a confiança na hora de dar manutenção no codigo a longo prazo
+não é simplismente garantir que a aplicação esta funcionando. mas ela tambem da confiança para trabalhar no codigo sem ter medo que algo possa quebrar ao modificar algo.
+aplicação grandes precisam de testes porque muita coisa pode acontecer.
+as vezes a gente mexe em uma parte do codigo e outra coisa distante quebra
+com testes automatizados a gente simula açoes que o usuario faria na aplicação e assim assegura que sempre que alterarmos algo vamos perceber se algo quebrar.
+varios tipos de testes os mais famosos são
+ unitarios
+ * vao testar apenas uma unidade da aplicação ou seja uma pequena parte da aplicação de forma totalmente isolada por exemplo executar uma função sozinha e ver se ela retorna o que esperavamos. não vamos testar se a rota que usa essa função vai continuar funcionando. gerealmente o teste masi usado na app
+ integração
+ * quando testamos a comunicação 2 ou mais unidades aqui ja vemos como os pedaços menores da aplicação funcionam trabalhando juntos
+ end to end ou e2e ou ponta a ponta
+ * testes que simulam um usuario operando na aplicação. testa tudo. 
+ o teste e2e no frontend nos realmente fazemos um 'robo" que vai digitar as coisas, clicar nas coisas e etc, usando um navegador. porem no backend o usuario é o frontend ent então o que ele vai fazer são chamadas http websockets, etc vamos testar as camadas expostas ao mundo externo. ou seja camadas que se comunicam com o frontend. vamos testar se as portas de entrada de nossa aplicação estão funciionando até o nosso banco de dados.
+ # piramide de testes
+ cada teste tem uma dificuldade e algumas exigencias que precisamos seguir na nossa aplicação. o primeiro teste que temos que aprender é o end to end
+ porque eles não dependem de nenhuma tecnologia, nel de arquitetura de software nem nada, qualquer pessoa pode escrever independente da aplicação da tecnologia da arquitetura eetc. eles tem uma barreira de entrada bem pequna. nessa aula vamos fazer so teste end to end
+ mas porque não escrevemos so teste end to end, ja que eles testam tudo?
+ porque eles simulam o usuario final e etc, porque eles são extremamente lentos.
+ o app da rocketseat tem mais de 2000 testes, imagina todos esses testes sendo lentos.
+ os outros tipos de testes são muito mais performaticos. a ideia é a gente ter poucos testes end to end meios testes de integração e muitos testes unitarios.
+ nos não vamos criar eles agora porque eles dependem de uma arquitetura da aplicação mais inteligente.
+ vamos fazer nossos primeiros testes
+ # primeiro teste
+ geralmente usamos uma outra feramenta para escrever os testes. o node ate tem uma api propria de teste mas ela é bem recente. então vamos usar uma biblioteca.
+  e a sintaxe é a mesma que vamos usar para qualquer ambiente javascript.
+  a ferramenta mais famos de teste hoje em dia é o jestJs.io
+  mas não vamos usar o jest porque a um tempo lançaram o vitest que é das mesma familia do vite
+  o vitest é uma framework ou seja um ecosistema para testes o mais importante é que por baixo dos panos ele usa a ferramente esbuild que tambem esta por traz do vite. quando a gente faz o teste ele vai ta escrito em typescript, e eles vão ser traduzidos para o js para o node, e o jest a gente tem que instalar isso tudo a parte mas no vitest ja vem automatico. suporta typescript o ecmascript modules e etcs e suporta tambem jsx. a sintaxe é exatamente igual ao jest.
+  a instalação do jest a gente tem que configurar varias coisas no vitest é praticamente so instalar.
+  amos dar um npm i vitest -D
+  criamos uma pasta chamada tests e dentro dela um arquivo de teste vamos fazer o example. os testes gralmente terminal com a extenção .test.ts ou .spec.ts podemos escolher a que quisermos
+  nesse arquivo vamos importar test from vitest
 
+  chamar a funcção test() e dar um nome para ela assim test('nome do teste') no segundo argumento passar uma função e dentro dessa função vamos escrever nosso teste.
+  o teste é composto por tres coisas importantes.
+  1 - enunciado - o que ele esta proposto a fazer
+  2 - operação - como vamos escrever o codigo para o teste realizar o que a gente quer
+  3 - validação - apos fazer o teste temos que dar um resultado se foi bem sucedido ou não isso a gente
+
+  para validar a gente coloca por exemplo um expect(responseStatusCode).toEqual(201) ou seja a gente espera que a resposta do serivod a nossa chamada seja um 201 ou um codigo que fucnionou. claro que abaixo esta em hardcode mas uma ideia seria isso:
+
+  import { expect, test } from 'vitest'
+
+test('user create new function', () => {
+  const responseStatusCode = 201
+  expect(responseStatusCode).toEqual(201)
+})
+
+a gente roda ele com npx vitest
+para não ficar rodando npx vitest e ele ja encontra a pasta tests a gente pode ir no package json e criar um script test para executar vitest
+resultado mostrado em um teste que funciona e em um que falha:
+✓ tests/example.test.ts (1)
+   ✓ user create new function
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  17:13:08
+   Duration  191ms
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+Cancelling test run. Press CTRL+c again to exit forcefully.
+
+➜  apiRest git:(main) ✗ npm run test
+
+> apirest@1.0.0 test
+> vitest
+
+
+ DEV  v0.34.3 /mnt/c/users/queis/onedrive/documentos/testevite/backend/apiRest
+
+ ❯ tests/example.test.ts (1)
+   × user create new function
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/example.test.ts > user create new function
+AssertionError: expected 200 to deeply equal 201
+
+- Expected
++ Received
+
+- 201
++ 200
+
+ ❯ tests/example.test.ts:5:30
+      3| test('user create new function', () => {
+      4|   const responseStatusCode = 200
+      5|   expect(responseStatusCode).toEqual(201)
+       |                              ^
+      6| })
+      7|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  17:13:21
+   Duration  5.01s (transform 656ms, setup 0ms, collect 780ms, tests 43ms, environment 0ms, prepare 2.38s)
+
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+Cancelling test run. Press CTRL+c again to exit forcefully.
 
 
 
