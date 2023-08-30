@@ -1070,6 +1070,58 @@ export async function transactionsRoutes(app: FastifyInstance) {
   })
 }
 
+# midleware global
+o nosso prehandler esta ativando em rotas especificas a gente esta indo em cada rota e ativando ele.
+porem podem existir prehandlers ou middleares globais que a gente queira que sejam usados em todas as toras.
+porem é ainda mais interessante entender que quando a gente cria um plugin ou seja a gente tem uma parte separada da aplicação. essa parte separada possui um contexto especifico ou seja tudo que for registrado no contexto do nosso arquvo de rotas apesar de ser global vai valer apenas para as rotas desse contexto. porque nosso arquivo de rotas transactionRoutes é um plugin
+então se a gente criar um outro arquivo de rotas para lidar com rotas diferentes. tudo que foi salvo no arquivo de transactionroutes não vai valer para ele.
+então para criar um um handler global ou seja um prehandler que rode independete da rota qua o usuario esteja usando a gente vai criar um
+app.addhook('preHandler', colcar nossa função async)
+e essa função vai acabar sendo no mesmo esquema das outras. a gente vai colocar esse app.addHook no proprio arquivo de rotas antes do app.get
+essa função então que esta la no addhook vai valer para todas as rotas. para testar isso nos vamos fazer um console.log e agora o que a gente fizer vai aparecer no nosso terminal. fica assim:
+export async function transactionsRoutes(app: FastifyInstance) {
+  app.addHook('preHandler', async (request, reply) => {
+    console.log(
+      `voce usou o metodo [${request.method}] e a rota ${request.url}`,
+    )
+  })
+  app.get(
+ 
+ e isso vai funcionar em todos as rotas inclusive na post. 
+ lembrando que a gente poderia escrever essa função em um middleware e no addhook passar somente a importação dessa função. funcionaria tambem e o codigo ficaria limpo se fosse uma função grande.
+ isso esta fucnionando.
+
+ porem o quea gente faz ali fica especifico ao contexto das rotas desse qrquivo transactionRoutes.
+ se a gente criar uma nova rota em outro arquivo como por exemplo /hello dentro do arquivo server. ai o nosso console.log não vai fucionar porque estamos em outro contexto;
+ então para fazer ele global realmente de funcionar em todas as rotas da aplicação a gente teria que chamar ele a parte. colocar ele no server antes de chamar qualquer coisa. vamos retirar ele da rota transactionRoutes e colocar dentro do server. porque ai ele vai fucnionar no contexto global do fastify.
+ o arquivo routes fica como estava antes desse ponto de rotas globais e o arquivo server fica assim:
+ import fastify from 'fastify'
+import cookie from '@fastify/cookie'
+import { env } from './env'
+import { transactionsRoutes } from './routes/transactions'
+
+const app = fastify()
+
+app.register(cookie)
+
+app.addHook('preHandler', async (request, reply) => {
+  console.log(`voce usou o metodo [${request.method}] e a rota ${request.url}`)
+})
+app.register(transactionsRoutes, {
+  prefix: 'transactions',
+})
+app
+  .listen({
+    port: env.PORT,
+  })
+  .then(() => {
+    console.log('http server running!')
+  })
+
+
+
+
+
 
 
 
