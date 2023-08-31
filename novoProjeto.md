@@ -1481,3 +1481,128 @@ deu um erro porque a gente configurou mal. a gente ediu para vir logo o array ma
 ou seja o array esta envelopado e um objeto para poder cada array ter o seu nome.
 
 então temos que passar body.transactions no expect. vou corrigir no codigo acima.
+
+# configurando banco de dados para teste
+nos estamos usando o mesmo banco de dados para teste e para a aplicação
+isso acaba sujando o nosso banco de dados
+o ideal é que cada vez que a gente execute o teste a gente esteja em um ambiente zerado.
+porem dentro do nosso env a url do banco de dados esta fixa e vai ser passada fixa para o server.
+nos vamos criar então na aplicação um arquivo .env.test
+vamos coloca_lo tambem no gitignore
+e nesse arquivo vamos colocar as variaveis que queremos ser chamadas nos tests.
+mudamos o node env para test e o database para test fica assim:
+DATABASE_URL="./db/test.db"
+NODE_ENV="test"
+porem o vitest preenche automaticamente a variavel node_env com test então a gente não precisa colocar isso no .env.test
+criamos tambem o .env.test.example para que alguem que baixe possa usar o exemplo.
+agora na nossa env/index.ts temos a importação do dotenv/config ele sempre carrega o .env porem nos podemos mudar isso. a gente pode importar do dotenv o metodo config
+assim
+import { config } from 'dotenv'
+
+e vamos fazer o seguinte a gente pode fazer uma condicional de se o node_ENV for igual a test (que é prenchido mesmpo antes de chamar o config se a gente tiver rodando testes)
+nos vamos executar o metodo config e passando um path para ele do .env.test
+caso não a gente passa a varaivel config sem passar path e ai ele procura por padrão no .env o arquivo completo fica assim:
+import { config } from 'dotenv'
+import { z } from 'zod'
+
+if (process.env.NODE_ENV === 'test') {
+  config({
+    path: '.env.test',
+  })
+} else {
+  config()
+}
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
+  DATABASE_URL: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => {
+        if (typeof value === 'string' && isNaN(Number(value))) {
+          return true
+        }
+        return false
+      },
+      { message: 'DATABASE_URL must be a non-numeric string' },
+    ),
+  PORT: z.number().default(3333),
+})
+
+const _env = envSchema.safeParse(process.env)
+
+if (_env.success === false) {
+  console.log('error: invalid environment variables:', _env.error.format())
+  throw new Error('invalid environment variables')
+}
+
+export const env = _env.data
+
+agora nos temos duas variaveis ambientes uma para cada contexto do programa, test ou desenvolvimento.
+e agora ao rodar o testes ele vai criar um banco de dados separado para testes.
+porem vai dar erro porque a tabela transaction não vai existir no novo db, ja que ela é criada por migration. para resolver isso vamos no nosso arquivo de testes
+vamos dar um beforeEach( )
+vamos importar do node:childprocess que é uma forma de a gente conseguir pegar varias funções para executar scripts em paralelo. e de la vamos pegar a função chamada execsync e com ela a gente consegue executar comandos do terminal por dentro da aplicação node. então com isso a gente pode dar um comando la no terminal para rodar. essa função escreve o que a gente vai escrever como comando ent#ão vamos dar o nosso de rodar as migrate. ou seja npm run knex migrate:latest com isso ele vai rodar as nossas migrações. a gente poderia fazer para rodar no beforeAll. porem o cenario ideal de testes é pegar uma aplicação zerada. então é melhor a gente fazer a migration a cada vez para sempre estar com uma tabela zerada para isso a gente pode antes de cada um dostestes executar o rollback para voltar cada migration.  ou seja a cada teste a gente apaga o banco e criade novo. teste end to end é cada vez vai ficando mais lentos por causa disso. então teste end to end ésão poucos e tem que testar bem a aplicação.
+
+a pagina fica assim:
+import { afterAll, beforeAll, test, describe, expect, beforeEach } from 'vitest'
+import { app } from '../src/app'
+import request from 'supertest'
+import { execSync } from 'node:child_process'
+
+describe('transacrion routes', () => {
+  beforeAll(async () => {
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  beforeEach(() => {
+    execSync('npm run knex migrate:rollback --all')
+    execSync('npm run knex migrate:latest')
+  })
+
+  test('user can create new transaction', async () => {
+    await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+      .expect(201)
+  })
+
+  test('list all transactions', async () => {
+    const createTransactionResponse = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+
+    const cookies = createTransactionResponse.get('set-cookie')
+
+    const listTransactions = await request(app.server)
+      .get('/transactions')
+      .set('Cookie', cookies)
+      .expect(200)
+
+    expect(listTransactions.body.transactions).toEqual([
+      expect.objectContaining({ title: 'new transaction', amount: 5000 }),
+    ])
+  })
+})
+
+
+é importante saber que caso fique muito lento a gente pode adaptar os testes, mas sempre com muito cuidado para que eles não fiquem defasados e acabem não testando algo importante o que pode ser ainda pior do que não ter o teste, porque vc vai achar que funciona quando na verdade tem um erro escondido.
+
+
+### importante. nos precisamos usar a versão node 18 entã antes de rodar os testes a gente pode manualmente dar um nvm use com a versão 18 ouentão colocar isso tambem como exec, so que escolhi deixar no manual essa parte porque se no futuro as atualizações funcionarem isso que é uma 'gambiarra' não vai ficar no codigo.
+
+
+
