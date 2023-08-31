@@ -1323,12 +1323,161 @@ ou seja todos os testes da rotas da transação a gente coloca no mesmo arquivo 
 a gente pode fazer subcategorias usando o describe dentro do describe como por exemplo a gente tem varias rotas get a gente poderia fazer uma subcategoria para os testes da get nela.
 outra coisa é que geralmente existe duas funções iguais a test e a it,  nome é diferente mas elas fazem a mesma coisa. ai a gente coloca como a gente quer. o it é porque a semantica de como a gente escreveia it('should be able to create transaction')
 mas ai a gente pode deixar como teste tambem. da no mesmo. melhor deixar teste para mim.
+# test list all transactions
+  para listar as transação a gente precisa de um session id que é criado no cookie quando a gente cria uma transação. como fazer isso no teste? 
+
+  o test tem algumas funções legais qo colocar . como por exemplo um skip que vai pular esse teste. ou o .todo que vai ser para lembrar de fazer esse teste no futuro ao rodar o test ele te lembra que tem um para fazer. e tem o .only pqra rodar apenas aquele test.
+  ficaria por exemplo assim:
+   test.skip('list all transactions', async () => {})
+
+   umz forma de pegar o cookie seria ao fazer o test de post a gente pegar o cookie dele colocando a chamaa da função em uma const como response e depois dando um response.get('set_Cookie') ficaria assim:
+   test('user can create new transaction', async () => {
+    const response = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+      .expect(201)
+    console.log(response.get('set_Cokkie'))
+
+    mas como pegar isso que esta no contexto de um test para o outro teste?
+    não tem como passar. todo teste deve obrigatoriamente se excluir de qualquer contexto. 
+    NAO PODEMOS NUNCA ESCREVER UM TESTE QUE DEPENDE DE OUTRO 
+    
+    então como fazer?
+    a gente pode fazer no novo teste a mesma chamada que cria uma transação . ate porque para listar transações nos somos obrigados a ter uma transação adastrada.
+    nos tiramos então do post essa const response mas fazemos o post com ela no de list porem tiramos o expect 201 porque não precisamos mais testar issoa gora. vamos mudar o response para create transaction response e vamos criar uma const cokkies pegando o cokkie que foi criado. fica assim a pagina por enquanto:
+   import { afterAll, beforeAll, test, describe } from 'vitest'
+import { app } from '../src/app'
+import request from 'supertest'
+import { it } from 'node:test'
+
+describe('transacrion routes', () => {
+  beforeAll(async () => {
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  test('user can create new transaction', async () => {
+    await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+      .expect(201)
+  })
+  test.skip('list all transactions', async () => {
+    const createTransactionResponse = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+
+    const cookie = createTransactionResponse.get('set_Cookie')
+  })
+})
 
 
+agora fazemos uma nova requisição para o servidor para a rota get.
+usando o set() para enviar o cookie e colocamos um excpet 200. fica assim:
+import { afterAll, beforeAll, test, describe } from 'vitest'
+import { app } from '../src/app'
+import request from 'supertest'
+import { it } from 'node:test'
 
+describe('transacrion routes', () => {
+  beforeAll(async () => {
+    await app.ready()
+  })
 
+  afterAll(async () => {
+    await app.close()
+  })
 
+  test('user can create new transaction', async () => {
+    await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+      .expect(201)
+  })
+  test.skip('list all transactions', async () => {
+    const createTransactionResponse = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
 
+    const cookies = createTransactionResponse.get('set_Cookie')
 
+    await request(app.server)
+      .get('/transactions')
+      .set('Cookie', cookies)
+      .expect(200)
+  })
+})
 
+porem para melhorar um pouco a gente melhorar um pouco a gente pode salvar essa requisição como uma const listTransactions e dar um console.log no fim com list Transactions para a gente ver a lista de transações criadas pelo test. mas melhor que esse console.log para ver o transactions a gente pode criar um test para comparar se o que voi criado é o que a gente queria então vamos dar um expect(listTransactions.body).toEqual([{}])
+ou seja esperamos que o corpo dessa const seja igual a um array e dentro desse aray tenha um objeto com essa formaração e dentreo desse objeto vamos dizer que vai ter um o title, o amount e o type com os valores indicados. porem o id e o session id created at, e etc a gente ão sabe o valor. para isso nos temos duas formas de resolver.  nos vamos importar o expect e para o id vamos dar um expect.any(String) ou seja vamos dizer qu o id vai ser uma string qualquer e poderiamos colocar isso para todos que a gente não sabe. ou então a gente diz continua igual, declara o array e dentro desse array a gente coloca um expect.objectContaining( ) ou seja a gente espera que tenha um objeto contendo essas coisas, mas não quer dizer que ele não pode conter outras coisas tambem para isso vamos passar um objeto com o titulo e o amount. o type não é salvo no banco de dados. fica assim:
+import { afterAll, beforeAll, test, describe, expect } from 'vitest'
+import { app } from '../src/app'
+import request from 'supertest'
 
+describe('transacrion routes', () => {
+  beforeAll(async () => {
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  test('user can create new transaction', async () => {
+    await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+      .expect(201)
+  })
+  test('list all transactions', async () => {
+    const createTransactionResponse = await request(app.server)
+      .post('/transactions')
+      .send({
+        title: 'new transaction',
+        amount: 5000,
+        type: 'credit',
+      })
+
+    const cookies = createTransactionResponse.get('set_Cookie')
+
+    const listTransactions = await request(app.server)
+      .get('/transactions')
+      .set('Cookie', cookies)
+      .expect(200)
+
+    expect(listTransactions.body.transactions).toEqual([
+      expect.objectContaining({ title: 'new transaction', amount: 5000 }),
+    ])
+  })
+})
+deu um erro porque a gente configurou mal. a gente ediu para vir logo o array mas ao olhar o insomnia a gente ve que vem um objeto e dentro dele vem transactions:[{}]
+ou seja o array esta envelopado e um objeto para poder cada array ter o seu nome.
+
+então temos que passar body.transactions no expect. vou corrigir no codigo acima.
