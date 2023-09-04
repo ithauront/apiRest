@@ -1604,5 +1604,48 @@ describe('transacrion routes', () => {
 
 ### importante. nos precisamos usar a versão node 18 entã antes de rodar os testes a gente pode manualmente dar um nvm use com a versão 18 ouentão colocar isso tambem como exec, so que escolhi deixar no manual essa parte porque se no futuro as atualizações funcionarem isso que é uma 'gambiarra' não vai ficar no codigo.
 
+# outros testes
+vamos criar os testes que vao agir sobre as demais portas de entrada de nossas aplicação ouj seja as outras rotas.
+vamos copiar  teste existente de listagem e colar ele para um teste novo de rota especifica.
+porem qgora quando scar ela pelo ilas transaçõe a gente precisa buscar ela pelo id
+porem quando a gente cria a transação a nossa rota na aplicação nao retorna nada. nem o id que foi criado então a gente vai ter que dar um jeito de achar isso.
+o teste tem que se adaptar ao codigo e néao o codigo se adaptar ao teste (eu acho que nos vamos er que listar todas para buscar o id de uma e depois catar ela pelo id) é isso mesmo. nos vamos fazer a listagem que ja esta sendo feita pelo codigo que copiamos e depois dela vamos dar um const id e vamos pegar o id da primeira posição do array de transactions que vai estar dentro do body que vai estar na listTranscatioResponse assim:
+ const transactionId = listTransactionsResponse.body.transactions[0].id
+ agora abaixo disso a gente vai fazer uma nova verificação chamada getTransactionResponse que vai ser igual a outra porem passando o id dentro da transaction assim
+  const getTransactionsResponse = await request(app.server)
+      .get(`/transactions/${transactionId}`)
+      .set('Cookie', cookies)
+      .expect(200)
 
+agora a gente espera que o retorno disso seja
+parecido com o outro porem como ele retorna direto o objet e não mais um array a gente tira o array e o nome muda para getTransactionResponse e agora é so transaction no singular. fica assim:
+  expect(getTransactionsResponse.body.transaction).toEqual(
+      expect.objectContaining({ title: 'new transaction', amount: 5000 }),
+    )
+  })
+
+  vamos agora fazer o teste do summary. copiamos novamente a que lista todos.
+  para o resumo é melhor a gente criar duas transações e não so uma, dessa forma ele pode fazer a soma dos amount.
+  nos criamos a primeira e dela nos pegamos os cookies e ai a gente cria uma segunda pegando do await ate o fim do objeto e colando isso apos a const de cookie. vamos vcolocar o setCookies depois do post transactions
+  e vamos chamar ela de debit modificar o amount e o type fica assim:
+   const cookies = createTransactionResponse.get('set-cookie')
+
+    await request(app.server)
+      .post('/transactions')
+      .set('Cookie', cookies)
+      .send({
+        title: 'debit transaction',
+        amount: 3000,
+        type: 'debit',
+      })
+
+
+trocamos a response para summaryResponse. e no de expect a gente vai pegar direto do body o summary pq ele ja retorna direto isso sem passar por transactions. 
+e o retorno dele tem que toEqual({amount: 2000}) por que é 5 mil menos os 3 do debit. fica assim:
+const summaryResponse = await request(app.server)
+      .get('/transactions/summary')
+      .set('Cookie', cookies)
+      .expect(200)
+
+    expect(summaryResponse.body.summary).toEqual({ amount: 2000 })
 
