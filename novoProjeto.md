@@ -1648,4 +1648,46 @@ const summaryResponse = await request(app.server)
       .expect(200)
 
     expect(summaryResponse.body.summary).toEqual({ amount: 2000 })
+# deploy
+
+## preparando o app para deploy
+nos vamos configurar o projeto e fazer o processo de deploy ou seja colocar ele em produção
+existe uma infinidade de modelos e serviços para fazer deploy da aplicação node e tambem de arquiteturas de deploy, não como é arquitetado o codigo e sim formas de se subir o projeto.
+aqui nos vamos usar uma forma mais smplies usando um serviço gerenciasdo que automatiza um pouco as coisas. se a gente usasse um serviço de plataforma algumas coisas que a gente vai fazer na mão eles ja entregam no pacote delesque é pago.
+primeiro passo. o codigo esta em typescript e nenhuma plataforma de deploy de node vai entender typescript então o primeiro passo é a gente converter isso para js
+a gente pode usar o proprio compilador do tpscrypt então podemos usar o tsc para compilar o codigo.
+indo la nas configuraç éoes do ts.config a gente pode descomentar o rootDir: e passar para ele onde esta nosso codigo ./src e tambem ddescomentar o outDir e colocar onde vai sair o codigo compilado, podemos colocar um endereço como ./build se agora no terminal a gente rodar npx tsc ele vai compilar e converter e criar uma pasta build (vai ter alguns erros que poderiamos ver se a gente fosse usar esse metodo o erro que diz é que nem tudo esta na pasta src pelo visto.)
+so que esse processo é lento e com codigo grande fica ainda mais lento e nos temos ferramentas melhores.
+vamos instalar a tsup
+npm i tsup -D
+o tsup é uma ferramenta para fazer o processo de build porem ele usa por baixo dos panos o asbuild que acelera miuito os processos para trabalhar com typscript.
+agora que ele esta instalado no arquivo package.json nos vamos criar um script chamado build e esse script vai executar tsup src
+ "build": "tsup src"
+agora podemos rodar npm run build
+é bem rapido e ele cria uma pasta dist com todo o codigo da aplicação. sem dar erros.
+se a gente quisesse outro nome na pasta a gente tem que colocar no script tsup src -d nome da pasta.
+
+o codigo que ele gera é bem diferente por conta da conversão então fica mais dificil de entender.
+porem a gente deve conseguir apenas rodando o node rodar esse servidor em js então se dermos no terminal o comando 
+node dist/server.js ele tem que funcionar. esse é um teste que podemos fazer.
+ta rodando
+vamos agora fazer mais algiuns ajustes.
+o eslint esta dando varios erros. porem não faz sentido o eslint rodar em nosso build então a gente cria um arquivo .eslintignore
+e dentro dele a gente escreve dist qi ele vai ignorar a pasta dist
+aproveitamos e colocamos tambem a pasta node_modules.
+colocamos tambem a pasta dist no gitignore isso é necessario. a gente pode colocar comentarios para classificar a nossa pasta gitignore.
+vamos alterar o database e colocar um asterisco apos a determinação da pagina e antes do .db assim ele vai ignorar todos arquivos que erminam com .db nessa pasta fica assim:
+jogo da velha database
+db/*.db
+
+vamos agora subir esse projeto no github
+a gente pode criar o repositorio pela interface do github. no site github;com
+
+como a gente esta sempre jogando nosso codigo no github a gente não precisa.
+porem para fazer o deploy nos precisamos desses dois passos
+o codigo estar no github (sem a build(dist) que é ignorada)
+e a aplicação esta conseguindo gerar a build(dist)
+
+
+
 
