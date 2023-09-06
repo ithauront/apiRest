@@ -24,7 +24,7 @@ const envSchema = z.object({
       },
       { message: 'DATABASE_URL must be a non-numeric string' },
     ),
-  PORT: z.coerce.number().default(3333),
+  PORT: z.string(),
 })
 
 const _env = envSchema.safeParse(process.env)
