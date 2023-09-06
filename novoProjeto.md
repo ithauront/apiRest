@@ -1765,6 +1765,39 @@ no nosso env/indes.ts temos a databaseurl que esta uma z.string
 
       com isso feito vamos dar mais um push do nosso codigo no githb.
 
+      agora a gente vai no site do render e olhamos o nosso banco de dados.
+      vai ter a internal database url e a external database url.
+      se a gente for usar a partir de nossa maquina vamos usar a external mas se for usar utilizando o proprio render por meios internos dele que é o que a gente vai fazer vamos usar o internal. então copiamos a url do internal.
+      clicalmos no new no header do site e colocamos criar um novo web service.
+      a gente tem que conectar o render ao nosso github para ele ver nossos repositorios.
+      a gente conecta com o repositorio em questão. a gente coloca o nome escolhe o local igual ao do banco de dados para que não tenha problemas de latencia. 
+      o root é para caso de varios projetos no mesmo repositorio, como não é nosso caso a gente deixa em branco. a brancha a gente esoclhe a branch do github onde esta atualizado o que a gente quer usar.
+      runtime é o node mesmo .
+      e em comandos para o build a gente tem que colocar o comando para dar o build da nossa aplicação no nosso caso a gente tem que converter para javascript então tem que ser todo o comando ou seja no projeto local a gente joga so o nom run build e funciona. mas la no render não vai porque o tscup não esta instalado. então nos valos primeiro instalar todas dependencias.
+      npm install && npm run knex -- migrate:latest && npm run build
+      ou seja ele vai instalar e quando terminar vai rodar as migrations e quando terminar ele vai rodar o build
+      e agora no start comande a gente vai colocar
+      node dist/server.js
+      ou seja ele vai construir a partir do js que vai ser feito na pasta dist quando a gente rodar o build..
+  escolhemos o plan free
+  embaixo tem a opão advanced vamos clicar nela.
+  ai aparece a opção de adicionar uma variavel ambiente.
+  clicando nisso a gente ve adicionar manualmente duas variaveis.*DATABASE_CLIENT e como valor vai ser pg
+  e 
+  DATABASE_URL que vai ser a que a gente copia la do banco de dados.
+  apos isso ta tudo pronto o resto a gente não precisa fazer.
+  o autodeploy esta ligado então cada vez que a gente der um comit no github ele vai dar update n o projeto. agora a gente pode criar
+  abre uma nova tela no site com o terminal que a gente pode acompanhar o que esta acontecendo ele vai instalando e depois roda as migrations o build e depois o server começa a rodar.
+  ele roda mas deu um erro de porta
+
+
+  como a gente pode testar a gente pega o endereço que ele da do nosso banco de dados vai no inmonia e troca o localhost pelo endereço que ele deu pra a gente. assim a gente tenta fazer as coisas usando ele. e deve fucnionar.
+  no imsomnia para não ficar trocando as url a gente pode criar environments
+  a gente cria dois um dev e um prod no dev a gente cadastra URL como a localhost e em prod a gente cadastra tambem a url mas coloca a do render
+  a gente pode colocar uma cor diferente tambem para não confundir. cadastra abrindo u objeto e dando "url": "localhost etc"
+  agora com isso fechado a gente pode entrar no ambiente que a gente quer e usar a url apagando o endereço e dando um cntrl espaço pra pear a url.
+  fazemos isso em todas as rotas.
+  
 
 
 
