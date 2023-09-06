@@ -1688,6 +1688,83 @@ porem para fazer o deploy nos precisamos desses dois passos
 o codigo estar no github (sem a build(dist) que é ignorada)
 e a aplicação esta conseguindo gerar a build(dist)
 
+existem muita plataformas onde a gente pode fazer deploy. existem algumas que a gente possa usar de forma gratuita antes de realmente estar em produção e ter usuarios reais.
+podemos usar o 
+render.com (paniel de administraão otimo)
+fly.io (um pouco mais complexo)
+railway.app 
+nos vamos usar o render
+precisamos criar uma conta.
+apos criar a conta a vamos cair na dashboard deles
+na nossa aplicação a gente usa um banco de dados relacional. sql
+com o knex a gente cria o script para os bancos de dados mas se q gente quiser trocar de banco no futuro deve funcionar. e é isso aue a gente vai fazer.
+no render vamos criar um banco de dados ele suporta apenas postgreSql a grande maioria suporta apenas o postgres porque ele é realmente opensource o mysql não é tão opensource assim é uma das melhores comunidades de bancos relacionais.
+no render dashboard bamos clicar no banco de dados para criar um newPostgreSQL
+vamos dar um nome. na região a gente escolhe uma que faça sentido. escolhi frankfurt
+por ser gratuito o banco de dados vai expirar em 90 dias.
+vamos competar as coisas e pedir para criar o banco. é um processo que demora um pouco.
+enquanto isso vamos mudando algumas coisas.
+no nosso env/indes.ts temos a databaseurl que esta uma z.string
+ DATABASE_URL: z
+    .string()
+    .nonempty() ...etc
+
+    a gente agora vai antes do database_url informar no env o databaseclient
+    que vai ser um z.enum porque ele tem opcçoes fixas.
+    DATABASE_CLIENT: z.enum(['sqlite', 'pg']),
+
+    a gente usa pg no lugar de postgres porque é assim que o kenx tem cadastrado. agora que a aplicação pode receber o postgres a gente vai instalar ele
+    npm i pg
+    não colocamos o -D porque não vai ser de desenvolvimento e sim de produção.
+    agora colocamos essa linha em todos os nossos .env
+    DATABASE_CLIENT="sqlite"
+    e agora no nosso database.ts onde tinha cliente a gente vai trocar por env.databaseClient assim
+    export const config: Knex.Config = {
+  client: env.DATABASE_CLIENT,
+
+  agora no conection se a gente olhar o knex ele diz que para o pg a gente tem que passar uma string depois de conection e para o sqlite a gente tem que passar um objeto e la dentro uma conection. então vamos fazer uma condicional.
+  atualmente esta assim:connection: {
+    filename: env.DATABASE_URL,
+  },
+
+  nos vamos mudar para isso:
+  connection:
+    env.DATABASE_CLIENT === 'sqlite'
+      ? {
+          filename: env.DATABASE_URL,
+        }
+      : env.DATABASE_URL,
+
+      ou seja se o client for sqlite a gente vai passar um objeto wue dentro tem o filename databaseurl. se não a gente passa direto o databaseurl que é uma string.
+
+      o render por padrão esta usando a versão 14 do node. mas essa versão é bem antiga a gente ta usando a 18 e atualmente ja ta na 20 então varias coisas que a gente fez aqui podem não funcionar na versão 14 então uma coisa que a gente pode fazer é ir no packageJson e onde tem o main title etc ou seja no root do package a gente vai declarar engines e dizer que o node pode ser maior ou igual a 18. fica assim:
+      "name": "apirest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  }, resto do package.
+
+  com isso salvo fica faltando ainda uma coisa que devemos fazer antes do deploy
+  que é a porta.
+ no server a gente ouve a port aassim
+  .listen({
+    port: env.PORT,
+
+    ou seja ele pega a porta do env que a gente não passou ainda mas esta no schema que o default é 3333 então ele entende isso.
+    mas a gente pode agora no env passar uma porta.
+    porem o render envia uma porta para a gente. porem ele envia como string e não como numero. e vai dar erro porque no nosso schema do env env/indes.ts a gente esta pendido um numero para a porta dessa forma:
+      PORT: z.number().default(3333),
+      e vamos receber do render uma string.
+      porem o zod tem uma coisa que vai nos permitir mudar isso que é o coerse. fica assim:
+      PORT: z.coerce.number().default(3333),
+      o coerce ele transforma o valor que a gente recebe na porta e transforma em um numero e e não for um valor valito ele bota 3333 que é o default.
+      entéao nos não precisamos colocar nenhuma porta no nosso env porque o render envia isso
+      o valor que ele vai enviar vai ser uma string e a gente vai transformar em um numero e ai o nosso programa vai ler.
+
+      com isso feito vamos dar mais um push do nosso codigo no githb.
+
 
 
 
