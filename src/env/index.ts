@@ -1,4 +1,5 @@
 import { config } from 'dotenv'
+import { type } from 'node:os'
 import { z } from 'zod'
 
 if (process.env.NODE_ENV === 'test') {
@@ -12,7 +13,18 @@ if (process.env.NODE_ENV === 'test') {
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   DATABASE_CLIENT: z.enum(['sqlite', 'pg']),
-  DATABASE_URL: z.string(),
+  DATABASE_URL: z
+    .string()
+    .nonempty()
+    .refine(
+      (value) => {
+        if (typeof value === 'string' && isNaN(Number(value))) {
+          return true
+        }
+        return false
+      },
+      { message: 'DATABASE_URL must be a non-numeric string' },
+    ),
   PORT: z.coerce.number().default(3333),
 })
 

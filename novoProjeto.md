@@ -1789,6 +1789,20 @@ no nosso env/indes.ts temos a databaseurl que esta uma z.string
   o autodeploy esta ligado então cada vez que a gente der um comit no github ele vai dar update n o projeto. agora a gente pode criar
   abre uma nova tela no site com o terminal que a gente pode acompanhar o que esta acontecendo ele vai instalando e depois roda as migrations o build e depois o server começa a rodar.
   ele roda mas deu um erro de porta
+  Não estava funcionando e depois de um tempo pesquisando eu descobri que tinha que determinar host: 0000 no server.
+  o server fica assim:
+  import { app } from './app'
+import { env } from './env'
+
+app
+  .listen({
+    host: '0.0.0.0',
+    port: env.PORT,
+  })
+  .then(() => {
+    console.log('http server running!')
+  })
+
 
 
   como a gente pode testar a gente pega o endereço que ele da do nosso banco de dados vai no inmonia e troca o localhost pelo endereço que ele deu pra a gente. assim a gente tenta fazer as coisas usando ele. e deve fucnionar.
@@ -1797,7 +1811,7 @@ no nosso env/indes.ts temos a databaseurl que esta uma z.string
   a gente pode colocar uma cor diferente tambem para não confundir. cadastra abrindo u objeto e dando "url": "localhost etc"
   agora com isso fechado a gente pode entrar no ambiente que a gente quer e usar a url apagando o endereço e dando um cntrl espaço pra pear a url.
   fazemos isso em todas as rotas.
-  
+
 
 
 
