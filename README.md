@@ -148,6 +148,7 @@ There is no authentication system — this is a session-based simulation.
 
 ---
 
+
 ## 🧠 What I Practiced
 
 * Structured backend with Fastify + Knex
@@ -163,4 +164,14 @@ There is no authentication system — this is a session-based simulation.
 * RESTful route design and validation
 
 * Planning and separating functional requirements vs. business rules
+
+---
+
+🤝 Related Project
+
+Although this backend was developed as a standalone project focused on backend architecture, testing, and database handling, it shares the core logic with a frontend project I also built: dtmoney.
+
+However, they were never integrated. The goal was to learn each layer of the stack in isolation — apiRest focused on backend fundamentals, while dtmoney was about mastering React and UI design with fake data.
+
+Both projects reflect my intention to build full product experiences, even when explored independently.
 
