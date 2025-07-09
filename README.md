@@ -1,20 +1,166 @@
-# planejamentos do banco de dados
-precisamos pensar nessas tres coisas antes de sair criando nossas rotas.
-ou seja quais são as funcionalidades da aplicação o que o usuario pode ou n ão pode fazer no app
+# 💸 Fastify Transactions API — Finance Tracker Backend
 
-## requisitos funcionais
+A structured and testable RESTful API built with **Fastify**, **Knex**, and **SQLite** that simulates a personal finance tracker backend. It supports creating, listing, and summarizing financial transactions, organized per user session using cookies.
 
-[v] o usuario pode criar uma nova transação
-[v] o usuario deve poder obter um resumo de sua conta (rota que vai retornar o valor total)
-[v] o usuario deve poder listar todas as transações queja ocorreram
-[v] o usuario deve poder visualizar uma transação unica
+---
 
-## regras de negocios (condicionais coisas que podem acontecer e o usuario vai validar)
+## 🧾 Requirements & Rules
 
-[v] a transação pode ser debito ou credito ou seja dinheiro entrando ou saindo do valor total
-[v]deve ser possivel identificarmos o usuario entre as requisições (ou seja se dois usuarios usarem a aplicação não vamos impactar as transaçoes um do outro)
-[v]o usuario so pode vizualizar transaçoes que ele criou.
+#### ✅ Functional Requirements
+
+- [x] User can create a new transaction
+- [x] User can list all existing transactions
+- [x] User can view a single transaction by its ID
+- [x] User can view a **summary** of their account (total balance)
+
+#### 📋 Business Rules
+
+- [x] Transactions must be either **credit** (inflow) or **debit** (outflow)
+- [x] Transactions are **session-specific** — one user's data should not interfere with another's
+- [x] User can only **view transactions they created**
+
+---
+
+## 🛠️ Tech Stack
+
+- **Fastify** – lightweight and fast Node.js web framework  
+- **Knex.js** – SQL query builder and migration tool  
+- **SQLite** – lightweight embedded database  
+- **Zod** – schema validation for environment and request data  
+- **Vitest** – testing framework  
+- **Supertest** – HTTP request assertions  
+- **Dotenv** – environment variable configuration  
+
+---
+
+## ⚙️ Environment Setup
+
+Create two `.env` files in the root:
+
+### .env
+```env
+DATABASE_URL="./db/app.db"
+DATABASE_CLIENT="sqlite"
+NODE_ENV="development"
+PORT=3333
+```
+
+### .env.test
+
+```env
+DATABASE_URL="./db/test.db"
+DATABASE_CLIENT="sqlite"
+NODE_ENV="test"
+```
+
+---
+
+## 🚀 Getting Started
+
+```bash
+# Clone the repository
+git clone https://github.com/ithauront/apiRest.git
+
+# Navigate to repository folder
+cd apiRest
+
+# Install dependencies
+npm install
+
+# Run database migrations
+npm run knex migrate:latest
+
+# Start the development server
+npm run dev
+```
+API will be available at:
+
+```
+http://localhost:3333/transactions
+```
+
+---
+## 🧪 Running Tests
+
+```bash
+npm run test
+```
+Tests use a separate SQLite database and reset the schema before each run:
+
+```
+npm run knex migrate:rollback --all
+npm run knex migrate:latest
+```
+
+---
+## 📬 API Endpoints
+
+### POST /transactions
+
+Create a new transaction.
+
+Body:
+```json
+{
+  "title": "Salary",
+  "amount": 5000,
+  "type": "credit"
+}
+```
+Returns ```201 Created``` and sets a cookie ```sessionId```.
 
 
+---
 
-## requisitos não funcionais (vamos adicionar depois )
+### GET /transactions
+
+List all transactions for the current session.
+Requires the ```sessionId``` cookie.
+
+
+---
+
+### GET /transactions/:id
+
+Fetch a specific transaction by ID.
+Session-bound.
+
+
+---
+
+### GET /transactions/summary
+
+Return a summary with the total balance for the session:
+```json
+{
+  "summary": { "amount": 2000 }
+}
+```
+
+---
+
+## 🔐 Session Tracking
+
+Each session is identified by a ```sessionId``` cookie.
+All transaction data is scoped to that session only.
+There is no authentication system — this is a session-based simulation.
+
+
+---
+
+## 🧠 What I Practiced
+
+* Structured backend with Fastify + Knex
+
+* Environment configuration using dotenv + Zod
+
+* SQL migration and DB versioning
+
+* Full integration testing with Vitest
+
+* Cookie-based session handling
+
+* RESTful route design and validation
+
+* Planning and separating functional requirements vs. business rules
+
